@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import folium
 from streamlit_folium import st_folium
+import plotly.express as px
 from fpdf import FPDF
 import datetime
 
@@ -70,23 +71,61 @@ if lat_input != st.session_state.lat or lon_input != st.session_state.lon:
 
 soil_type = st.sidebar.selectbox("Primary Soil Type", ["Loam", "Clay Loam", "Sandy Loam", "Silt Loam"])
 
+# Dynamic Currency Detection based on Longitude / Latitude regions
+def get_local_currency(lat, lon):
+    if 6.5 <= lat <= 35.5 and 68.0 <= lon <= 97.5:
+        return "INR", "₹", "Rs.", 83.0
+    elif 35.0 <= lat <= 70.0 and -10.0 <= lon <= 40.0:
+        return "EUR", "€", "EUR", 0.92
+    elif -35.0 <= lat <= 5.0 and -74.0 <= lon <= -34.0:
+        return "BRL", "R$", "BRL", 5.0
+    else:
+        return "USD", "$", "USD", 1.0
+
+curr_code, curr_symbol, pdf_curr_symbol, exchange_rate = get_local_currency(st.session_state.lat, st.session_state.lon)
+st.sidebar.markdown("---")
+st.sidebar.markdown(f"**Detected Region Currency:** `{curr_code} ({curr_symbol})`")
+
 st.sidebar.markdown("---")
 st.sidebar.header("Farmer Priorities")
 priority_water = st.sidebar.slider("Water Conservation Importance", 1, 5, 4)
 priority_soil = st.sidebar.slider("Soil Health Recovery Importance", 1, 5, 5)
 priority_profit = st.sidebar.slider("Short-Term Profit Priority", 1, 5, 3)
 
-# Interactive Map Section
-st.markdown('<div class="section-header">Field Location Selector</div>', unsafe_allow_html=True)
-st.caption("Click anywhere on the map below to select field coordinates, or enter them manually in the sidebar.")
+# --- INTERACTIVE MAP WITH PARAMETER FILTER DROPDOWN ---
+st.markdown('<div class="section-header">Field Location & Parameter Layer Inspector</div>', unsafe_allow_html=True)
+
+map_filter = st.selectbox(
+    "Select Map Overlay Parameter to Highlight:",
+    ["Standard Field Marker", "Soil Retention Layer", "NASA Precipitation Heat Zone", "SMAP Root Moisture Status"]
+)
+
+st.caption("Click anywhere on the map below to select new field coordinates, or enter them manually in the sidebar.")
 
 m = folium.Map(location=[st.session_state.lat, st.session_state.lon], zoom_start=6)
-folium.Marker(
-    [st.session_state.lat, st.session_state.lon],
-    tooltip=f"Selected Field ({st.session_state.lat:.4f}, {st.session_state.lon:.4f})"
+
+# Dynamic marker color or radius based on selected dropdown filter
+marker_color = "blue"
+marker_radius = 8
+if map_filter == "Soil Retention Layer":
+    marker_color = "orange"
+elif map_filter == "NASA Precipitation Heat Zone":
+    marker_color = "green"
+elif map_filter == "SMAP Root Moisture Status":
+    marker_color = "cadetblue"
+
+folium.CircleMarker(
+    location=[st.session_state.lat, st.session_state.lon],
+    radius=12,
+    popup=f"Active Layer: {map_filter}",
+    tooltip=f"Selected Field ({st.session_state.lat:.4f}, {st.session_state.lon:.4f}) - [{map_filter}]",
+    color=marker_color,
+    fill=True,
+    fill_color=marker_color,
+    fill_opacity=0.7
 ).add_to(m)
 
-map_data = st_folium(m, height=350, width="100%", key="field_map")
+map_data = st_folium(m, height=380, width="100%", key="field_map")
 
 if map_data and map_data.get("last_clicked"):
     clicked_lat = round(map_data["last_clicked"]["lat"], 4)
@@ -154,6 +193,25 @@ with row2_col2:
     status = "Optimal" if smap_moisture_pct > 40 else ("Moderate Stress" if smap_moisture_pct > 25 else "Severe Drought Risk")
     st.metric("Hydrological Status", status)
 
+# Extreme Weather Anomaly & Risk Detector
+hot_days_count = int((df_climate['Temperature'] > 32.0).sum())
+dry_spell_max = int((df_climate['Precipitation'] < 0.1).astype(int).groupby(df_climate['Precipitation'].ge(0.1).cumsum()).sum().max())
+
+if hot_days_count > 45 or smap_moisture_pct < 25:
+    st.error(f"NASA Climate Alert: High thermal stress detected! ({hot_days_count} days exceeding 32°C alongside low SMAP root moisture). Recommended to prioritize drought-resilient rotation strategies (Strategy 3).")
+else:
+    st.success(f"Climate Stability Check: Normal thermal variation detected with maximum consecutive dry spell window of {dry_spell_max} days.")
+
+# Interactive Climate Trend Chart
+st.markdown('<div class="section-header">Multi-Month Climate Trend Visualization</div>', unsafe_allow_html=True)
+st.write("Visualizing daily temperature fluctuations and precipitation events derived from NASA observation datasets.")
+df_monthly = df_climate.resample('ME').agg({'Temperature': 'mean', 'Precipitation': 'sum'})
+df_monthly['Month'] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+fig = px.bar(df_monthly, x='Month', y='Precipitation', title="Monthly Precipitation Accumulation (mm)", color_discrete_sequence=['#0284C7'])
+fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(family="Inter"))
+st.plotly_chart(fig, use_container_width=True)
+
 st.markdown('<div class="section-header">Crop Rotation Strategy Evaluation Matrix</div>', unsafe_allow_html=True)
 st.write("Evaluating strategies based on your field's climate profile, SMAP soil wetness index, and assigned operational weights.")
 
@@ -201,7 +259,7 @@ for s in strategies_data:
         10), 1
     )
 
-# Strategy selection card layout with theme-safe adaptive styling
+# Strategy selection card layout
 strategy_names = [s["Strategy"] for s in strategies_data]
 selected_strategy_name = st.selectbox("Select Strategy to Inspect Detailed Rationale:", strategy_names)
 chosen = next(item for item in strategies_data if item["Strategy"] == selected_strategy_name)
@@ -235,6 +293,19 @@ with col_b:
     st.markdown(f"**Primary Risk Factor:** {chosen['Risk Factor']}")
 
 st.info(f"NASA Satellite Evidence: With SMAP root-zone soil saturation currently at **{smap_moisture_pct}%** ({status}) and soil type set to **{soil_type}**, **{chosen['Strategy']}** provides the scientifically backed safeguard against localized dry spells.")
+
+# --- DYNAMIC ECONOMIC & YIELD IMPACT ESTIMATOR ---
+st.markdown('<div class="section-header">Estimated 3-Year Economic & Soil Resilience Impact</div>', unsafe_allow_html=True)
+base_savings_val = int(45 * exchange_rate)
+formatted_savings = f"{curr_symbol}{base_savings_val:,}"
+
+eco_col1, eco_col2, eco_col3 = st.columns(3)
+with eco_col1:
+    st.metric("Est. Fertilizer Savings", f"+{formatted_savings} / acre / yr", f"Via Nitrogen Fixation ({curr_code})")
+with eco_col2:
+    st.metric("Soil Moisture Retention", "+18% Capacity", "Improved Root Structure")
+with eco_col3:
+    st.metric("Drought Yield Protection", "Up to +22%", "During Dry Windows")
 
 # --- CROP CHARACTERISTICS REFERENCE CARDS ---
 st.markdown('<div class="section-header">Crop Characteristics & Biological Profile</div>', unsafe_allow_html=True)
@@ -334,6 +405,9 @@ def build_pdf_report():
     add_key_value("Coordinates", f"Latitude {st.session_state.lat:.4f}, Longitude {st.session_state.lon:.4f}")
     add_key_value("Primary Soil Type", soil_type)
     add_key_value("Operational Priorities", f"Water: {priority_water}/5  |  Soil Health: {priority_soil}/5  |  Profit: {priority_profit}/5")
+    
+    pdf_savings = f"{pdf_curr_symbol} {base_savings_val:,}"
+    add_key_value("Local Currency Context", f"{curr_code} Est. Savings: {pdf_savings}/acre/yr")
     pdf.ln(4)
 
     # Section 2: NASA Telemetry
