@@ -513,98 +513,98 @@ st.session_state.soil_type = st.sidebar.selectbox("Soil Classification", soil_ty
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Website Translation**")
 
-# Comprehensive Global & Indian Languages by Country / Region (Native Script Labels)
+# Comprehensive Global & Indian Languages in their own Native Language Names
 LANGUAGE_CATALOGUE = [
-    {"label": "English (Default / Original)", "code": "en", "native": "English"},
-    # All Official & State Languages of India in Native Script
-    {"label": "हिन्दी (Hindi - India)", "code": "hi", "native": "हिन्दी"},
-    {"label": "বাংলা (Bengali - West Bengal / Tripura)", "code": "bn", "native": "বাংলা"},
-    {"label": "తెలుగు (Telugu - Andhra Pradesh / Telangana)", "code": "te", "native": "తెలుగు"},
-    {"label": "मराठी (Marathi - Maharashtra)", "code": "mr", "native": "मराठी"},
-    {"label": "தமிழ் (Tamil - Tamil Nadu / Puducherry)", "code": "ta", "native": "தமிழ்"},
-    {"label": "اردو (Urdu - India)", "code": "ur", "native": "اردو"},
-    {"label": "ગુજરાતી (Gujarati - Gujarat)", "code": "gu", "native": "ગુજરાતી"},
-    {"label": "ಕನ್ನಡ (Kannada - Karnataka)", "code": "kn", "native": "ಕನ್ನಡ"},
-    {"label": "മലയാളം (Malayalam - Kerala)", "code": "ml", "native": "മലയാളം"},
-    {"label": "ଓଡ଼ିଆ (Odia - Odisha)", "code": "or", "native": "ଓଡ଼ିଆ"},
-    {"label": "ਪੰਜਾਬੀ (Punjabi - Punjab)", "code": "pa", "native": "ਪੰਜਾਬੀ"},
-    {"label": "অসমীয়া (Assamese - Assam)", "code": "as", "native": "অসমীয়া"},
-    {"label": "मैथिली (Maithili - Bihar / Jharkhand)", "code": "mai", "native": "मैथिली"},
-    {"label": "ᱥᱟᱱᱛᱟᱲᱤ (Santali - Jharkhand / Odisha)", "code": "sat", "native": "ᱥᱟᱱᱛᱟᱲᱤ"},
-    {"label": "کٲشُر (Kashmiri - Jammu & Kashmir)", "code": "ks", "native": "کٲشُر"},
-    {"label": "नेपाली (Nepali - Sikkim / West Bengal)", "code": "ne", "native": "नेपाली"},
-    {"label": "कोंकणी (Konkani - Goa / Karnataka)", "code": "gom", "native": "कोंकणी"},
-    {"label": "سنڌي (Sindhi - India)", "code": "sd", "native": "سنڌي"},
-    {"label": "डोगरी (Dogri - Jammu & Kashmir)", "code": "doi", "native": "डोगरी"},
-    {"label": "ꯃꯤꯇꯩꯂꯣꯟ (Manipuri / Meitei - Manipur)", "code": "mni-Mtei", "native": "ꯃꯤꯇꯩꯂꯣꯟ"},
-    {"label": "बड़ो (Bodo - Assam / Bodoland)", "code": "brx", "native": "बड़ो"},
-    {"label": "संस्कृतम् (Sanskrit - India)", "code": "sa", "native": "संस्कृतम्"},
-    {"label": "भोजपुरी (Bhojpuri - Bihar / UP)", "code": "bho", "native": "भोजपुरी"},
+    {"name": "English", "code": "en"},
+    # Official & State Languages of India in Native Script
+    {"name": "हिन्दी", "code": "hi"},
+    {"name": "বাংলা", "code": "bn"},
+    {"name": "తెలుగు", "code": "te"},
+    {"name": "मराठी", "code": "mr"},
+    {"name": "தமிழ்", "code": "ta"},
+    {"name": "اردو", "code": "ur"},
+    {"name": "ગુજરાતી", "code": "gu"},
+    {"name": "ಕನ್ನಡ", "code": "kn"},
+    {"name": "മലയാളം", "code": "ml"},
+    {"name": "ଓଡ଼ିଆ", "code": "or"},
+    {"name": "ਪੰਜਾਬੀ", "code": "pa"},
+    {"name": "অসমীয়া", "code": "as"},
+    {"name": "मैथिली", "code": "mai"},
+    {"name": "ᱥᱟᱱᱛᱟᱲᱤ", "code": "sat"},
+    {"name": "کٲشُر", "code": "ks"},
+    {"name": "नेपाली", "code": "ne"},
+    {"name": "कोंकणी", "code": "gom"},
+    {"name": "سنڌي", "code": "sd"},
+    {"name": "डोगरी", "code": "doi"},
+    {"name": "ꯃꯤꯇꯩꯂꯣꯟ", "code": "mni-Mtei"},
+    {"name": "बड़ो", "code": "brx"},
+    {"name": "संस्कृतम्", "code": "sa"},
+    {"name": "भोजपुरी", "code": "bho"},
     # Worldwide Nations & Languages in Native Script
-    {"label": "Español (Spanish - Spain / Latin America)", "code": "es", "native": "Español"},
-    {"label": "Français (French - France / Canada)", "code": "fr", "native": "Français"},
-    {"label": "Deutsch (German - Germany / Austria / Switzerland)", "code": "de", "native": "Deutsch"},
-    {"label": "Português (Portuguese - Brazil / Portugal)", "code": "pt", "native": "Português"},
-    {"label": "Italiano (Italian - Italy)", "code": "it", "native": "Italiano"},
-    {"label": "简体中文 (Chinese Simplified - China / Singapore)", "code": "zh-CN", "native": "简体中文"},
-    {"label": "繁體中文 (Chinese Traditional - Taiwan / Hong Kong)", "code": "zh-TW", "native": "繁體中文"},
-    {"label": "日本語 (Japanese - Japan)", "code": "ja", "native": "日本語"},
-    {"label": "한국어 (Korean - South Korea)", "code": "ko", "native": "한국어"},
-    {"label": "العربية (Arabic - Middle East / North Africa)", "code": "ar", "native": "العربية"},
-    {"label": "Русский (Russian - Russia / CIS)", "code": "ru", "native": "Русский"},
-    {"label": "Türkçe (Turkish - Turkey)", "code": "tr", "native": "Türkçe"},
-    {"label": "Tiếng Việt (Vietnamese - Vietnam)", "code": "vi", "native": "Tiếng Việt"},
-    {"label": "ไทย (Thai - Thailand)", "code": "th", "native": "ไทย"},
-    {"label": "Bahasa Indonesia (Indonesian - Indonesia)", "code": "id", "native": "Bahasa Indonesia"},
-    {"label": "Bahasa Melayu (Malay - Malaysia)", "code": "ms", "native": "Bahasa Melayu"},
-    {"label": "Filipino / Tagalog (Philippines)", "code": "tl", "native": "Filipino"},
-    {"label": "Nederlands (Dutch - Netherlands / Belgium)", "code": "nl", "native": "Nederlands"},
-    {"label": "Polski (Polish - Poland)", "code": "pl", "native": "Polski"},
-    {"label": "Українська (Ukrainian - Ukraine)", "code": "uk", "native": "Українська"},
-    {"label": "Svenska (Swedish - Sweden)", "code": "sv", "native": "Svenska"},
-    {"label": "Norsk (Norwegian - Norway)", "code": "no", "native": "Norsk"},
-    {"label": "Dansk (Danish - Denmark)", "code": "da", "native": "Dansk"},
-    {"label": "Suomi (Finnish - Finland)", "code": "fi", "native": "Suomi"},
-    {"label": "Ελληνικά (Greek - Greece)", "code": "el", "native": "Ελληνικά"},
-    {"label": "Čeština (Czech - Czech Republic)", "code": "cs", "native": "Čeština"},
-    {"label": "Magyar (Hungarian - Hungary)", "code": "hu", "native": "Magyar"},
-    {"label": "Română (Romanian - Romania)", "code": "ro", "native": "Română"},
-    {"label": "עברית (Hebrew - Israel)", "code": "he", "native": "עברית"},
-    {"label": "فارسی (Persian / Farsi - Iran)", "code": "fa", "native": "فارسی"},
-    {"label": "Kiswahili (Swahili - East Africa)", "code": "sw", "native": "Kiswahili"},
-    {"label": "አማርኛ (Amharic - Ethiopia)", "code": "am", "native": "አማርኛ"},
-    {"label": "မြန်မာစာ (Burmese - Myanmar)", "code": "my", "native": "မြန်မာစာ"},
-    {"label": "ភាសាខ្មែរ (Khmer - Cambodia)", "code": "km", "native": "ភាសាខ្មែរ"},
-    {"label": "සිංහල (Sinhala - Sri Lanka)", "code": "si", "native": "සිංහල"}
+    {"name": "Español", "code": "es"},
+    {"name": "Français", "code": "fr"},
+    {"name": "Deutsch", "code": "de"},
+    {"name": "Português", "code": "pt"},
+    {"name": "Italiano", "code": "it"},
+    {"name": "简体中文", "code": "zh-CN"},
+    {"name": "繁體中文", "code": "zh-TW"},
+    {"name": "日本語", "code": "ja"},
+    {"name": "한국어", "code": "ko"},
+    {"name": "العربية", "code": "ar"},
+    {"name": "Русский", "code": "ru"},
+    {"name": "Türkçe", "code": "tr"},
+    {"name": "Tiếng Việt", "code": "vi"},
+    {"name": "ไทย", "code": "th"},
+    {"name": "Bahasa Indonesia", "code": "id"},
+    {"name": "Bahasa Melayu", "code": "ms"},
+    {"name": "Filipino", "code": "tl"},
+    {"name": "Nederlands", "code": "nl"},
+    {"name": "Polski", "code": "pl"},
+    {"name": "Українська", "code": "uk"},
+    {"name": "Svenska", "code": "sv"},
+    {"name": "Norsk", "code": "no"},
+    {"name": "Dansk", "code": "da"},
+    {"name": "Suomi", "code": "fi"},
+    {"name": "Ελληνικά", "code": "el"},
+    {"name": "Čeština", "code": "cs"},
+    {"name": "Magyar", "code": "hu"},
+    {"name": "Română", "code": "ro"},
+    {"name": "עברית", "code": "he"},
+    {"name": "فارسی", "code": "fa"},
+    {"name": "Kiswahili", "code": "sw"},
+    {"name": "አማርኛ", "code": "am"},
+    {"name": "မြန်မာစာ", "code": "my"},
+    {"name": "ភាសាខ្មែរ", "code": "km"},
+    {"name": "සිංහල", "code": "si"}
 ]
 
-lang_labels = [item["label"] for item in LANGUAGE_CATALOGUE]
+lang_options = [item["name"] for item in LANGUAGE_CATALOGUE]
 
-if "target_language_label" not in st.session_state:
-    st.session_state.target_language_label = lang_labels[0]
+if "target_language" not in st.session_state or st.session_state.target_language not in lang_options:
+    st.session_state.target_language = "English"
 
-current_lang_idx = lang_labels.index(st.session_state.target_language_label) if st.session_state.target_language_label in lang_labels else 0
+current_lang_idx = lang_options.index(st.session_state.target_language)
 
-selected_lang_label = st.sidebar.selectbox(
-    "Select Target Language / Country:",
-    lang_labels,
+selected_lang = st.sidebar.selectbox(
+    "Select Target Language:",
+    lang_options,
     index=current_lang_idx,
-    help="Search country name or language (includes all Indian state languages). Toggles Google Translate across the entire app."
+    help="Select language. Toggles Google Translate across the entire app."
 )
 
-if selected_lang_label != st.session_state.target_language_label:
-    st.session_state.target_language_label = selected_lang_label
+if selected_lang != st.session_state.target_language:
+    st.session_state.target_language = selected_lang
     st.rerun()
 
-chosen_lang_item = next((item for item in LANGUAGE_CATALOGUE if item["label"] == selected_lang_label), LANGUAGE_CATALOGUE[0])
+chosen_lang_item = next((item for item in LANGUAGE_CATALOGUE if item["name"] == selected_lang), LANGUAGE_CATALOGUE[0])
 target_lang_code = chosen_lang_item["code"]
-target_lang_native = chosen_lang_item["native"]
+target_lang_name = chosen_lang_item["name"]
 
 st.sidebar.markdown(f"""
-    <div style="background: rgba(18, 42, 26, 0.65); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 12px; padding: 10px 12px; margin-top: 6px; margin-bottom: 16px;">
+    <div class="notranslate" translate="no" style="background: rgba(18, 42, 26, 0.65); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 12px; padding: 10px 12px; margin-top: 6px; margin-bottom: 16px;">
         <div style="font-size: 0.72rem; color: #86EFAC; font-weight: 600; text-transform: uppercase;">Active Language</div>
-        <div style="font-size: 0.95rem; font-weight: 700; color: #4ADE80; margin-top: 2px;">{target_lang_native} ({target_lang_code})</div>
-        <div style="font-size: 0.72rem; color: #CBD5E1; margin-top: 2px;">Google Translate Engine: Connected</div>
+        <div style="font-size: 0.95rem; font-weight: 700; color: #4ADE80; margin-top: 2px;">{target_lang_name} ({target_lang_code})</div>
+        <div style="font-size: 0.72rem; color: #CBD5E1; margin-top: 2px;">Google Translate Engine: {'Default (Original)' if target_lang_code == 'en' else 'Connected'}</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -634,27 +634,33 @@ translate_component_html = f"""
         targetWin = window;
     }}
 
-    // 1. Manage googtrans cookie across all document scopes and hostnames
-    function syncGoogTransCookie(lang) {{
-        var cookieVal = (lang === "en" || !lang) ? "" : "/en/" + lang;
-        var expires = (lang === "en" || !lang) 
-            ? "expires=Thu, 01 Jan 1970 00:00:00 UTC;" 
-            : "expires=" + new Date(Date.now() + 86400000 * 30).toUTCString() + ";";
-        
-        var docs = [document];
-        if (targetDoc !== document) {{
-            docs.push(targetDoc);
-        }}
-
+    // Clear all googtrans cookies across all document scopes, hostnames and paths
+    function clearGoogTransCookies() {{
         var host = "";
         try {{ host = window.location.hostname; }} catch(e) {{}}
-        var domains = [""];
-        if (host) {{
-            domains.push(host);
-            domains.push("." + host);
-        }}
+        var domains = ["", host, "." + host];
+        var paths = ["/", ""];
+        [document, targetDoc].forEach(function(d) {{
+            domains.forEach(function(dom) {{
+                paths.forEach(function(p) {{
+                    var c = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+                    if (p) c += " path=" + p + ";";
+                    if (dom) c += " domain=" + dom + ";";
+                    try {{ d.cookie = c; }} catch(e) {{}}
+                }});
+            }});
+        }});
+    }}
 
-        docs.forEach(function(d) {{
+    // Set googtrans cookie for non-English target languages
+    function setGoogTransCookie(lang) {{
+        var cookieVal = "/en/" + lang;
+        var expires = "expires=" + new Date(Date.now() + 86400000 * 30).toUTCString() + ";";
+        var host = "";
+        try {{ host = window.location.hostname; }} catch(e) {{}}
+        var domains = ["", host, "." + host];
+
+        [document, targetDoc].forEach(function(d) {{
             domains.forEach(function(dom) {{
                 var c = "googtrans=" + cookieVal + "; path=/; " + expires;
                 if (dom) c += " domain=" + dom + ";";
@@ -663,9 +669,13 @@ translate_component_html = f"""
         }});
     }}
 
-    syncGoogTransCookie(targetLang);
+    if (isEnglish) {{
+        clearGoogTransCookies();
+    }} else {{
+        setGoogTransCookie(targetLang);
+    }}
 
-    // 2. Ensure container element exists in target DOM
+    // Ensure container element exists in target DOM
     var elem = targetDoc.getElementById("google_translate_element");
     if (!elem) {{
         elem = targetDoc.createElement("div");
@@ -674,7 +684,7 @@ translate_component_html = f"""
         targetDoc.body.appendChild(elem);
     }}
 
-    // 3. Define callback function in both parent window and local window
+    // Define callback function in both parent window and local window
     var initTranslate = function() {{
         try {{
             if (targetWin.google && targetWin.google.translate && targetWin.google.translate.TranslateElement) {{
@@ -692,7 +702,7 @@ translate_component_html = f"""
     targetWin.googleTranslateElementInit = initTranslate;
     window.googleTranslateElementInit = initTranslate;
 
-    // 4. Inject Google Translate script if not present
+    // Inject Google Translate script if not present
     if (!targetDoc.getElementById("google-translate-script")) {{
         var script = targetDoc.createElement("script");
         script.id = "google-translate-script";
@@ -701,7 +711,7 @@ translate_component_html = f"""
         targetDoc.head.appendChild(script);
     }}
 
-    // 5. Hide Google banner frame, floating icons, and tooltips
+    // Hide Google banner frame, floating icons, and tooltips
     function suppressGoogleOverlays() {{
         var selectors = [
             '.goog-te-banner-frame',
@@ -734,7 +744,7 @@ translate_component_html = f"""
         }}
     }}
 
-    // 6. Protect selectboxes & dropdowns from Google translation mutations
+    // Protect selectboxes & dropdowns from Google translation mutations
     function protectDropdownsFromTranslation() {{
         var targets = targetDoc.querySelectorAll(
             'div[data-testid="stSidebar"] [data-baseweb="select"], ' +
@@ -750,18 +760,42 @@ translate_component_html = f"""
         }});
     }}
 
-    // 7. Trigger the language change on .goog-te-combo
+    // Trigger language switch on .goog-te-combo safely
+    var switchDispatched = false;
     function triggerLanguageSwitch() {{
-        var select = targetDoc.querySelector('.goog-te-combo') || document.querySelector('.goog-te-combo');
-        if (select) {{
-            var desiredVal = isEnglish ? "" : targetLang;
-            if (select.value !== desiredVal) {{
-                select.value = desiredVal;
-                select.dispatchEvent(new Event('change', {{ bubbles: true }}));
-            }}
-        }}
         suppressGoogleOverlays();
         protectDropdownsFromTranslation();
+
+        var select = targetDoc.querySelector('.goog-te-combo') || document.querySelector('.goog-te-combo');
+        if (!select) return;
+
+        if (isEnglish) {{
+            // When target is English, ensure Google Translate resets back to original
+            if (select.value && select.value !== "" && select.value !== "en") {{
+                for (var i = 0; i < select.options.length; i++) {{
+                    if (select.options[i].value === "" || select.options[i].value === "en") {{
+                        select.selectedIndex = i;
+                        select.value = select.options[i].value;
+                        select.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                        break;
+                    }}
+                }}
+            }}
+            return;
+        }}
+
+        // When target is non-English, find exact match and dispatch once
+        if (select.value !== targetLang && !switchDispatched) {{
+            for (var j = 0; j < select.options.length; j++) {{
+                if (select.options[j].value === targetLang) {{
+                    select.selectedIndex = j;
+                    select.value = targetLang;
+                    select.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                    switchDispatched = true;
+                    break;
+                }}
+            }}
+        }}
     }}
 
     // Execute immediately and in polled micro-intervals
@@ -775,7 +809,7 @@ translate_component_html = f"""
         triggerLanguageSwitch();
         suppressGoogleOverlays();
         protectDropdownsFromTranslation();
-        if (pollCount > 60) {{
+        if (pollCount > 40) {{
             clearInterval(timer);
         }}
     }}, 150);
