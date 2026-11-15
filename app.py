@@ -360,17 +360,20 @@ st.markdown(f"""
             height: 0px !important;
             opacity: 0 !important;
         }}
-        /* Hide modern Google Translate top bar and floating middle icon overlays */
-        [class*="VIpgJd-ZVi9od"],
-        [class*="VIpgJd-yAWNEb"],
-        .VIpgJd-ZVi9od-aZ2wEe,
-        .VIpgJd-ZVi9od-ORHb-O2T7fe,
-        .VIpgJd-ZVi9od-xl07Ob-lTBxed,
-        .VIpgJd-yAWNEb-hvhcQ,
+        /* Hide modern Google Translate top bar and floating overlays without hiding translated text */
+        .goog-te-banner-frame,
+        iframe.goog-te-banner-frame,
         #goog-gt-tt,
+        .goog-te-balloon-frame,
         .goog-tooltip,
         .goog-tooltip-skin,
-        .goog-logo-link {{
+        .goog-logo-link,
+        .VIpgJd-ZVi9od-aZ2wEe,
+        .VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+        .VIpgJd-ZVi9od-aZ2wEe-wOHMyf-ti6hGc,
+        .VIpgJd-ZVi9od-ORHb-O2T7fe,
+        .VIpgJd-ZVi9od-xl07Ob-lTBxed,
+        iframe.VIpgJd-ZVi9od-xl07Ob-OEVmcd {{
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
@@ -634,13 +637,28 @@ translate_component_html = f"""
         targetWin = window;
     }}
 
-    // Clear all googtrans cookies across all document scopes, hostnames and paths
+    // Clear all googtrans cookies across all document scopes, parent domain suffixes and paths
     function clearGoogTransCookies() {{
         var host = "";
-        try {{ host = window.location.hostname; }} catch(e) {{}}
-        var domains = ["", host, "." + host];
-        var paths = ["/", ""];
+        try {{
+            host = targetWin.location.hostname;
+        }} catch(e) {{
+            try {{ host = window.location.hostname; }} catch(err) {{}}
+        }}
+
+        var domains = ["", host];
+        if (host) {{
+            domains.push("." + host);
+            var parts = host.split(".");
+            for (var i = 1; i < parts.length; i++) {{
+                domains.push("." + parts.slice(i).join("."));
+            }}
+        }}
+
+        var paths = ["/", "", window.location.pathname];
+
         [document, targetDoc].forEach(function(d) {{
+            if (!d) return;
             domains.forEach(function(dom) {{
                 paths.forEach(function(p) {{
                     var c = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
@@ -650,17 +668,35 @@ translate_component_html = f"""
                 }});
             }});
         }});
+
+        try {{
+            targetWin.sessionStorage.removeItem("googtrans");
+            targetWin.localStorage.removeItem("googtrans");
+        }} catch(e) {{}}
     }}
 
-    // Set googtrans cookie for non-English target languages
+    // Set googtrans cookie for non-English target languages across domains
     function setGoogTransCookie(lang) {{
         var cookieVal = "/en/" + lang;
         var expires = "expires=" + new Date(Date.now() + 86400000 * 30).toUTCString() + ";";
         var host = "";
-        try {{ host = window.location.hostname; }} catch(e) {{}}
-        var domains = ["", host, "." + host];
+        try {{
+            host = targetWin.location.hostname;
+        }} catch(e) {{
+            try {{ host = window.location.hostname; }} catch(err) {{}}
+        }}
+
+        var domains = ["", host];
+        if (host) {{
+            domains.push("." + host);
+            var parts = host.split(".");
+            for (var i = 1; i < parts.length; i++) {{
+                domains.push("." + parts.slice(i).join("."));
+            }}
+        }}
 
         [document, targetDoc].forEach(function(d) {{
+            if (!d) return;
             domains.forEach(function(dom) {{
                 var c = "googtrans=" + cookieVal + "; path=/; " + expires;
                 if (dom) c += " domain=" + dom + ";";
@@ -669,18 +705,102 @@ translate_component_html = f"""
         }});
     }}
 
-    if (isEnglish) {{
-        clearGoogTransCookies();
-    }} else {{
-        setGoogTransCookie(targetLang);
+    // Hide Google Translate banner frame, floating icons, and tooltips
+    function suppressGoogleOverlays() {{
+        var selectors = [
+            '.goog-te-banner-frame',
+            'iframe.goog-te-banner-frame',
+            '#goog-gt-tt',
+            '.goog-te-balloon-frame',
+            '.goog-tooltip',
+            '.goog-tooltip-skin',
+            '.goog-logo-link',
+            '.VIpgJd-ZVi9od-aZ2wEe',
+            '.VIpgJd-ZVi9od-aZ2wEe-wOHMyf',
+            '.VIpgJd-ZVi9od-aZ2wEe-wOHMyf-ti6hGc',
+            '.VIpgJd-ZVi9od-ORHb-O2T7fe',
+            '.VIpgJd-ZVi9od-xl07Ob-lTBxed',
+            'iframe.VIpgJd-ZVi9od-xl07Ob-OEVmcd'
+        ];
+        selectors.forEach(function(sel) {{
+            try {{
+                var nodes = targetDoc.querySelectorAll(sel);
+                nodes.forEach(function(node) {{
+                    node.style.setProperty('display', 'none', 'important');
+                    node.style.setProperty('visibility', 'hidden', 'important');
+                    node.style.setProperty('opacity', '0', 'important');
+                    node.style.setProperty('height', '0px', 'important');
+                    node.style.setProperty('width', '0px', 'important');
+                    node.style.setProperty('pointer-events', 'none', 'important');
+                }});
+            }} catch(e) {{}}
+        }});
+        if (targetDoc.body && targetDoc.body.style && targetDoc.body.style.top && targetDoc.body.style.top !== "0px") {{
+            targetDoc.body.style.top = "0px";
+        }}
     }}
 
-    // Ensure container element exists in target DOM
+    // Protect selectboxes & dropdowns from Google translation mutations
+    function protectDropdownsFromTranslation() {{
+        var targets = targetDoc.querySelectorAll(
+            'div[data-testid="stSidebar"] [data-baseweb="select"], ' +
+            'div[data-testid="stSidebar"] [data-baseweb="select"] *, ' +
+            'div[data-baseweb="popover"], div[data-baseweb="popover"] *, ' +
+            'div[data-baseweb="menu"], div[data-baseweb="menu"] *, ' +
+            'ul[role="listbox"], ul[role="listbox"] *, ' +
+            'li[role="option"], li[role="option"] *'
+        );
+        targets.forEach(function(el) {{
+            el.setAttribute('translate', 'no');
+            el.classList.add('notranslate');
+        }});
+    }}
+
+    // When language is English, ensure total isolation: delete cookies, clean elements, and do NOT load element.js
+    if (isEnglish) {{
+        clearGoogTransCookies();
+
+        var prevLang = null;
+        try {{
+            prevLang = targetWin.sessionStorage.getItem("fs_target_lang");
+        }} catch(e) {{}}
+
+        try {{
+            targetWin.sessionStorage.removeItem("fs_target_lang");
+        }} catch(e) {{}}
+
+        try {{
+            var oldEl = targetDoc.getElementById("google_translate_element");
+            if (oldEl) oldEl.remove();
+            var oldSc = targetDoc.getElementById("google-translate-script");
+            if (oldSc) oldSc.remove();
+        }} catch(e) {{}}
+
+        // If a non-English language was previously active in this browser session, reload window to restore clean English DOM
+        if (prevLang && prevLang !== "en") {{
+            try {{
+                targetWin.location.reload();
+            }} catch(e) {{}}
+            return;
+        }}
+
+        suppressGoogleOverlays();
+        return;
+    }}
+
+    // When language is non-English, record target language and set cookie
+    try {{
+        targetWin.sessionStorage.setItem("fs_target_lang", targetLang);
+    }} catch(e) {{}}
+
+    setGoogTransCookie(targetLang);
+
+    // Ensure container element exists in target DOM (off-screen, not display:none to allow widget rendering)
     var elem = targetDoc.getElementById("google_translate_element");
     if (!elem) {{
         elem = targetDoc.createElement("div");
         elem.id = "google_translate_element";
-        elem.style.cssText = "display:none!important;position:fixed!important;top:-9999px!important;left:-9999px!important;width:0!important;height:0!important;opacity:0!important;pointer-events:none!important;";
+        elem.style.cssText = "position:absolute!important;top:-9999px!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important;";
         targetDoc.body.appendChild(elem);
     }}
 
@@ -709,55 +829,10 @@ translate_component_html = f"""
         script.type = "text/javascript";
         script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
         targetDoc.head.appendChild(script);
-    }}
-
-    // Hide Google banner frame, floating icons, and tooltips
-    function suppressGoogleOverlays() {{
-        var selectors = [
-            '.goog-te-banner-frame',
-            'iframe.goog-te-banner-frame',
-            '.goog-te-balloon-frame',
-            '#goog-gt-tt',
-            '.goog-tooltip',
-            '.goog-tooltip-skin',
-            '.goog-logo-link',
-            '[class*="VIpgJd-ZVi9od"]',
-            '[class*="VIpgJd-yAWNEb"]',
-            '.VIpgJd-ZVi9od-aZ2wEe',
-            '.VIpgJd-ZVi9od-ORHb-O2T7fe',
-            '.VIpgJd-ZVi9od-xl07Ob-lTBxed',
-            '.VIpgJd-yAWNEb-hvhcQ'
-        ];
-        selectors.forEach(function(sel) {{
-            var nodes = targetDoc.querySelectorAll(sel);
-            nodes.forEach(function(node) {{
-                node.style.setProperty('display', 'none', 'important');
-                node.style.setProperty('visibility', 'hidden', 'important');
-                node.style.setProperty('opacity', '0', 'important');
-                node.style.setProperty('height', '0px', 'important');
-                node.style.setProperty('width', '0px', 'important');
-                node.style.setProperty('pointer-events', 'none', 'important');
-            }});
-        }});
-        if (targetDoc.body && targetDoc.body.style.top && targetDoc.body.style.top !== "0px") {{
-            targetDoc.body.style.top = "0px";
+    }} else {{
+        if (targetWin.google && targetWin.google.translate && targetWin.google.translate.TranslateElement) {{
+            initTranslate();
         }}
-    }}
-
-    // Protect selectboxes & dropdowns from Google translation mutations
-    function protectDropdownsFromTranslation() {{
-        var targets = targetDoc.querySelectorAll(
-            'div[data-testid="stSidebar"] [data-baseweb="select"], ' +
-            'div[data-testid="stSidebar"] [data-baseweb="select"] *, ' +
-            'div[data-baseweb="popover"], div[data-baseweb="popover"] *, ' +
-            'div[data-baseweb="menu"], div[data-baseweb="menu"] *, ' +
-            'ul[role="listbox"], ul[role="listbox"] *, ' +
-            'li[role="option"], li[role="option"] *'
-        );
-        targets.forEach(function(el) {{
-            el.setAttribute('translate', 'no');
-            el.classList.add('notranslate');
-        }});
     }}
 
     // Trigger language switch on .goog-te-combo safely
@@ -769,31 +844,43 @@ translate_component_html = f"""
         var select = targetDoc.querySelector('.goog-te-combo') || document.querySelector('.goog-te-combo');
         if (!select) return;
 
-        if (isEnglish) {{
-            // When target is English, ensure Google Translate resets back to original
-            if (select.value && select.value !== "" && select.value !== "en") {{
-                for (var i = 0; i < select.options.length; i++) {{
-                    if (select.options[i].value === "" || select.options[i].value === "en") {{
-                        select.selectedIndex = i;
-                        select.value = select.options[i].value;
-                        select.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                        break;
-                    }}
-                }}
-            }}
+        if (select.value === targetLang) {{
+            switchDispatched = true;
             return;
         }}
 
-        // When target is non-English, find exact match and dispatch once
-        if (select.value !== targetLang && !switchDispatched) {{
+        if (!switchDispatched) {{
+            var foundIdx = -1;
             for (var j = 0; j < select.options.length; j++) {{
                 if (select.options[j].value === targetLang) {{
-                    select.selectedIndex = j;
-                    select.value = targetLang;
-                    select.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                    switchDispatched = true;
+                    foundIdx = j;
                     break;
                 }}
+            }}
+
+            if (foundIdx >= 0) {{
+                select.selectedIndex = foundIdx;
+                select.value = targetLang;
+
+                try {{
+                    var evt = targetDoc.createEvent('HTMLEvents');
+                    evt.initEvent('change', true, true);
+                    select.dispatchEvent(evt);
+                }} catch(e) {{}}
+
+                try {{
+                    if (targetWin.Event) {{
+                        select.dispatchEvent(new targetWin.Event('change', {{ bubbles: true }}));
+                    }}
+                }} catch(e) {{}}
+
+                try {{
+                    if (typeof select.onchange === 'function') {{
+                        select.onchange();
+                    }}
+                }} catch(e) {{}}
+
+                switchDispatched = true;
             }}
         }}
     }}
@@ -809,7 +896,7 @@ translate_component_html = f"""
         triggerLanguageSwitch();
         suppressGoogleOverlays();
         protectDropdownsFromTranslation();
-        if (pollCount > 40) {{
+        if (pollCount > 40 || switchDispatched) {{
             clearInterval(timer);
         }}
     }}, 150);
