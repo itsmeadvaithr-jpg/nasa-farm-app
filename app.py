@@ -360,14 +360,18 @@ st.markdown(f"""
             height: 0px !important;
             opacity: 0 !important;
         }}
-        /* Hide modern Google Translate top bar and floating overlays without hiding translated text */
+        /* Hide modern Google Translate top bar, banner frames, and floating overlays */
         .goog-te-banner-frame,
         iframe.goog-te-banner-frame,
+        iframe.skiptranslate,
+        div.skiptranslate:not(#google_translate_element),
         #goog-gt-tt,
         .goog-te-balloon-frame,
         .goog-tooltip,
         .goog-tooltip-skin,
         .goog-logo-link,
+        [id*=":container"],
+        [id*="goog-gt-"],
         .VIpgJd-ZVi9od-aZ2wEe,
         .VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
         .VIpgJd-ZVi9od-aZ2wEe-wOHMyf-ti6hGc,
@@ -380,10 +384,14 @@ st.markdown(f"""
             pointer-events: none !important;
             width: 0px !important;
             height: 0px !important;
+            max-height: 0px !important;
+            z-index: -99999 !important;
+            border: none !important;
         }}
-        body {{
+        html, body {{
             top: 0px !important;
             position: static !important;
+            margin-top: 0px !important;
         }}
 
         /* Hidden bridge component iframe */
@@ -583,6 +591,16 @@ LANGUAGE_CATALOGUE = [
 
 lang_options = [item["name"] for item in LANGUAGE_CATALOGUE]
 
+# Support persistent URL query parameter across browser reloads
+query_lang = None
+try:
+    query_lang = st.query_params.get("lang")
+except Exception:
+    pass
+
+if query_lang and query_lang in lang_options:
+    st.session_state.target_language = query_lang
+
 if "target_language" not in st.session_state or st.session_state.target_language not in lang_options:
     st.session_state.target_language = "English"
 
@@ -597,6 +615,10 @@ selected_lang = st.sidebar.selectbox(
 
 if selected_lang != st.session_state.target_language:
     st.session_state.target_language = selected_lang
+    try:
+        st.query_params["lang"] = selected_lang
+    except Exception:
+        pass
     st.rerun()
 
 chosen_lang_item = next((item for item in LANGUAGE_CATALOGUE if item["name"] == selected_lang), LANGUAGE_CATALOGUE[0])
@@ -636,6 +658,50 @@ translate_component_html = f"""
         targetDoc = document;
         targetWin = window;
     }}
+
+    // Inject aggressive CSS directly into top-level document head to hide banner instantly
+    try {{
+        var hideStyle = targetDoc.getElementById("google-translate-hide-banner");
+        if (!hideStyle) {{
+            hideStyle = targetDoc.createElement("style");
+            hideStyle.id = "google-translate-hide-banner";
+            hideStyle.textContent = `
+                .goog-te-banner-frame,
+                iframe.goog-te-banner-frame,
+                iframe.skiptranslate,
+                div.skiptranslate:not(#google_translate_element),
+                #goog-gt-tt,
+                .goog-te-balloon-frame,
+                .goog-tooltip,
+                .goog-tooltip-skin,
+                .goog-logo-link,
+                [id*=":container"],
+                [id*="goog-gt-"],
+                .VIpgJd-ZVi9od-aZ2wEe,
+                .VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+                .VIpgJd-ZVi9od-aZ2wEe-wOHMyf-ti6hGc,
+                .VIpgJd-ZVi9od-ORHb-O2T7fe,
+                .VIpgJd-ZVi9od-xl07Ob-lTBxed,
+                iframe.VIpgJd-ZVi9od-xl07Ob-OEVmcd {{
+                    display: none !important;
+                    visibility: hidden !important;
+                    opacity: 0 !important;
+                    height: 0px !important;
+                    max-height: 0px !important;
+                    width: 0px !important;
+                    pointer-events: none !important;
+                    z-index: -99999 !important;
+                    border: none !important;
+                }}
+                html, body {{
+                    top: 0px !important;
+                    position: static !important;
+                    margin-top: 0px !important;
+                }}
+            `;
+            targetDoc.head.appendChild(hideStyle);
+        }}
+    }} catch(e) {{}}
 
     // Clear all googtrans cookies across all document scopes, parent domain suffixes and paths
     function clearGoogTransCookies() {{
@@ -698,9 +764,12 @@ translate_component_html = f"""
         [document, targetDoc].forEach(function(d) {{
             if (!d) return;
             domains.forEach(function(dom) {{
-                var c = "googtrans=" + cookieVal + "; path=/; " + expires;
-                if (dom) c += " domain=" + dom + ";";
-                try {{ d.cookie = c; }} catch(e) {{}}
+                var c1 = "googtrans=" + cookieVal + "; path=/; " + expires;
+                if (dom) c1 += " domain=" + dom + ";";
+                try {{ d.cookie = c1; }} catch(e) {{}}
+                var c2 = "googtrans=/auto/" + lang + "; path=/; " + expires;
+                if (dom) c2 += " domain=" + dom + ";";
+                try {{ d.cookie = c2; }} catch(e) {{}}
             }});
         }});
     }}
@@ -710,11 +779,15 @@ translate_component_html = f"""
         var selectors = [
             '.goog-te-banner-frame',
             'iframe.goog-te-banner-frame',
+            'iframe.skiptranslate',
+            'div.skiptranslate:not(#google_translate_element)',
             '#goog-gt-tt',
             '.goog-te-balloon-frame',
             '.goog-tooltip',
             '.goog-tooltip-skin',
             '.goog-logo-link',
+            '[id*=":container"]',
+            '[id*="goog-gt-"]',
             '.VIpgJd-ZVi9od-aZ2wEe',
             '.VIpgJd-ZVi9od-aZ2wEe-wOHMyf',
             '.VIpgJd-ZVi9od-aZ2wEe-wOHMyf-ti6hGc',
@@ -735,8 +808,12 @@ translate_component_html = f"""
                 }});
             }} catch(e) {{}}
         }});
-        if (targetDoc.body && targetDoc.body.style && targetDoc.body.style.top && targetDoc.body.style.top !== "0px") {{
-            targetDoc.body.style.top = "0px";
+        if (targetDoc.body) {{
+            targetDoc.body.style.setProperty('top', '0px', 'important');
+            targetDoc.body.style.setProperty('position', 'static', 'important');
+        }}
+        if (targetDoc.documentElement) {{
+            targetDoc.documentElement.style.setProperty('top', '0px', 'important');
         }}
     }}
 
@@ -756,18 +833,14 @@ translate_component_html = f"""
         }});
     }}
 
+    var prevLang = null;
+    try {{
+        prevLang = targetWin.sessionStorage.getItem("fs_applied_lang");
+    }} catch(e) {{}}
+
     // When language is English, ensure total isolation: delete cookies, clean elements, and do NOT load element.js
     if (isEnglish) {{
         clearGoogTransCookies();
-
-        var prevLang = null;
-        try {{
-            prevLang = targetWin.sessionStorage.getItem("fs_target_lang");
-        }} catch(e) {{}}
-
-        try {{
-            targetWin.sessionStorage.removeItem("fs_target_lang");
-        }} catch(e) {{}}
 
         try {{
             var oldEl = targetDoc.getElementById("google_translate_element");
@@ -779,20 +852,29 @@ translate_component_html = f"""
         // If a non-English language was previously active in this browser session, reload window to restore clean English DOM
         if (prevLang && prevLang !== "en") {{
             try {{
+                targetWin.sessionStorage.setItem("fs_applied_lang", "en");
                 targetWin.location.reload();
             }} catch(e) {{}}
             return;
         }}
 
+        try {{ targetWin.sessionStorage.setItem("fs_applied_lang", "en"); }} catch(e) {{}}
         suppressGoogleOverlays();
         return;
     }}
 
-    // When language is non-English, record target language and set cookie
-    try {{
-        targetWin.sessionStorage.setItem("fs_target_lang", targetLang);
-    }} catch(e) {{}}
+    // When language is non-English:
+    // If the applied language is different from the target language, update cookies & reload window
+    if (prevLang !== targetLang) {{
+        setGoogTransCookie(targetLang);
+        try {{
+            targetWin.sessionStorage.setItem("fs_applied_lang", targetLang);
+            targetWin.location.reload();
+        }} catch(e) {{}}
+        return;
+    }}
 
+    // Language already applied in session: ensure cookie is intact and Google Translate element is active
     setGoogTransCookie(targetLang);
 
     // Ensure container element exists in target DOM (off-screen, not display:none to allow widget rendering)
