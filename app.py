@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import requests
 import pandas as pd
 import numpy as np
@@ -382,6 +383,20 @@ st.markdown(f"""
             position: static !important;
         }}
 
+        /* Hidden bridge component iframe */
+        iframe[title="streamlit.components.v1.html"],
+        iframe[data-testid="stIFrame"] {{
+            position: fixed !important;
+            top: -9999px !important;
+            left: -9999px !important;
+            width: 1px !important;
+            height: 1px !important;
+            opacity: 0.001 !important;
+            pointer-events: none !important;
+            border: none !important;
+            z-index: -99999 !important;
+        }}
+
         /* Keep Language Selector & Dropdowns Independent from Translation */
         div[data-testid="stSidebar"] div[data-baseweb="select"],
         ul[role="listbox"],
@@ -593,26 +608,100 @@ st.sidebar.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Google Translate Seamless Background Bridge (Toggled strictly from Sidebar Dropdown)
-translate_bridge_html = f"""
+# Google Translate Universal Engine Loader & Seamless Bridge
+translate_component_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+</head>
+<body style="margin:0;padding:0;">
 <script type="text/javascript">
 (function() {{
     var targetLang = "{target_lang_code}";
-    var sourceLang = "en";
-    
-    // Clean & set cookies across all levels
-    function updateGoogTransCookie(lang) {{
-        var cookieVal = (lang === "en" || !lang) ? "" : "/" + sourceLang + "/" + lang;
-        var expires = (lang === "en" || !lang) ? "expires=Thu, 01 Jan 1970 00:00:00 UTC;" : "expires=" + new Date(Date.now() + 86400000*30).toUTCString() + ";";
-        document.cookie = "googtrans=" + cookieVal + "; path=/; " + expires;
-        try {{
-            document.cookie = "googtrans=" + cookieVal + "; domain=" + window.location.hostname + "; path=/; " + expires;
-        }} catch(e) {{}}
+    var isEnglish = (targetLang === "en" || !targetLang);
+
+    // Resolve top-level parent window and document
+    var targetDoc = document;
+    var targetWin = window;
+    try {{
+        if (window.parent && window.parent.document) {{
+            targetDoc = window.parent.document;
+            targetWin = window.parent;
+        }}
+    }} catch (e) {{
+        targetDoc = document;
+        targetWin = window;
     }}
 
-    updateGoogTransCookie(targetLang);
+    // 1. Manage googtrans cookie across all document scopes and hostnames
+    function syncGoogTransCookie(lang) {{
+        var cookieVal = (lang === "en" || !lang) ? "" : "/en/" + lang;
+        var expires = (lang === "en" || !lang) 
+            ? "expires=Thu, 01 Jan 1970 00:00:00 UTC;" 
+            : "expires=" + new Date(Date.now() + 86400000 * 30).toUTCString() + ";";
+        
+        var docs = [document];
+        if (targetDoc !== document) {{
+            docs.push(targetDoc);
+        }}
 
-    // Continuous cleanup function to keep Google top banner & middle floating icons hidden
+        var host = "";
+        try {{ host = window.location.hostname; }} catch(e) {{}}
+        var domains = [""];
+        if (host) {{
+            domains.push(host);
+            domains.push("." + host);
+        }}
+
+        docs.forEach(function(d) {{
+            domains.forEach(function(dom) {{
+                var c = "googtrans=" + cookieVal + "; path=/; " + expires;
+                if (dom) c += " domain=" + dom + ";";
+                try {{ d.cookie = c; }} catch(e) {{}}
+            }});
+        }});
+    }}
+
+    syncGoogTransCookie(targetLang);
+
+    // 2. Ensure container element exists in target DOM
+    var elem = targetDoc.getElementById("google_translate_element");
+    if (!elem) {{
+        elem = targetDoc.createElement("div");
+        elem.id = "google_translate_element";
+        elem.style.cssText = "display:none!important;position:fixed!important;top:-9999px!important;left:-9999px!important;width:0!important;height:0!important;opacity:0!important;pointer-events:none!important;";
+        targetDoc.body.appendChild(elem);
+    }}
+
+    // 3. Define callback function in both parent window and local window
+    var initTranslate = function() {{
+        try {{
+            if (targetWin.google && targetWin.google.translate && targetWin.google.translate.TranslateElement) {{
+                new targetWin.google.translate.TranslateElement({{
+                    pageLanguage: "en",
+                    layout: targetWin.google.translate.TranslateElement.InlineLayout.SIMPLE,
+                    autoDisplay: false
+                }}, "google_translate_element");
+            }}
+        }} catch(err) {{
+            console.warn("Translate init warning:", err);
+        }}
+    }};
+
+    targetWin.googleTranslateElementInit = initTranslate;
+    window.googleTranslateElementInit = initTranslate;
+
+    // 4. Inject Google Translate script if not present
+    if (!targetDoc.getElementById("google-translate-script")) {{
+        var script = targetDoc.createElement("script");
+        script.id = "google-translate-script";
+        script.type = "text/javascript";
+        script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+        targetDoc.head.appendChild(script);
+    }}
+
+    // 5. Hide Google banner frame, floating icons, and tooltips
     function suppressGoogleOverlays() {{
         var selectors = [
             '.goog-te-banner-frame',
@@ -629,41 +718,25 @@ translate_bridge_html = f"""
             '.VIpgJd-ZVi9od-xl07Ob-lTBxed',
             '.VIpgJd-yAWNEb-hvhcQ'
         ];
-        
         selectors.forEach(function(sel) {{
-            var nodes = document.querySelectorAll(sel);
+            var nodes = targetDoc.querySelectorAll(sel);
             nodes.forEach(function(node) {{
                 node.style.setProperty('display', 'none', 'important');
                 node.style.setProperty('visibility', 'hidden', 'important');
                 node.style.setProperty('opacity', '0', 'important');
                 node.style.setProperty('height', '0px', 'important');
+                node.style.setProperty('width', '0px', 'important');
                 node.style.setProperty('pointer-events', 'none', 'important');
             }});
         }});
-        
-        if (document.body && document.body.style.top && document.body.style.top !== "0px") {{
-            document.body.style.top = "0px";
+        if (targetDoc.body && targetDoc.body.style.top && targetDoc.body.style.top !== "0px") {{
+            targetDoc.body.style.top = "0px";
         }}
     }}
 
-    // Fast, immediate trigger for Google Translate
-    var _lastDispatchedTarget = "";
-    function triggerLanguageSwitch() {{
-        var select = document.querySelector('.goog-te-combo');
-        if (select) {{
-            if (select.value !== targetLang && _lastDispatchedTarget !== targetLang) {{
-                select.value = targetLang;
-                _lastDispatchedTarget = targetLang;
-                // Dispatch native change event
-                select.dispatchEvent(new Event('change', {{ bubbles: true }}));
-            }}
-        }}
-        suppressGoogleOverlays();
-    }}
-
-    // Protect selectboxes and listboxes from Google Translate mutations
+    // 6. Protect selectboxes & dropdowns from Google translation mutations
     function protectDropdownsFromTranslation() {{
-        var targets = document.querySelectorAll(
+        var targets = targetDoc.querySelectorAll(
             'div[data-testid="stSidebar"] [data-baseweb="select"], ' +
             'div[data-testid="stSidebar"] [data-baseweb="select"] *, ' +
             'div[data-baseweb="popover"], div[data-baseweb="popover"] *, ' +
@@ -677,23 +750,51 @@ translate_bridge_html = f"""
         }});
     }}
 
+    // 7. Trigger the language change on .goog-te-combo
+    function triggerLanguageSwitch() {{
+        var select = targetDoc.querySelector('.goog-te-combo') || document.querySelector('.goog-te-combo');
+        if (select) {{
+            var desiredVal = isEnglish ? "" : targetLang;
+            if (select.value !== desiredVal) {{
+                select.value = desiredVal;
+                select.dispatchEvent(new Event('change', {{ bubbles: true }}));
+            }}
+        }}
+        suppressGoogleOverlays();
+        protectDropdownsFromTranslation();
+    }}
+
+    // Execute immediately and in polled micro-intervals
     protectDropdownsFromTranslation();
     triggerLanguageSwitch();
-    setTimeout(function() {{ protectDropdownsFromTranslation(); triggerLanguageSwitch(); }}, 80);
-    setTimeout(function() {{ protectDropdownsFromTranslation(); triggerLanguageSwitch(); }}, 250);
+    suppressGoogleOverlays();
 
-    // Repeated safety check to keep overlays suppressed and dropdowns protected without spamming
-    if (!window._googleSuppressInterval) {{
-        window._googleSuppressInterval = setInterval(function() {{
+    var pollCount = 0;
+    var timer = setInterval(function() {{
+        pollCount++;
+        triggerLanguageSwitch();
+        suppressGoogleOverlays();
+        protectDropdownsFromTranslation();
+        if (pollCount > 60) {{
+            clearInterval(timer);
+        }}
+    }}, 150);
+
+    // Watch for new elements dynamically rendered by Streamlit
+    if (targetWin.MutationObserver && !targetWin._googleTranslateObserverSet) {{
+        targetWin._googleTranslateObserverSet = true;
+        var observer = new targetWin.MutationObserver(function() {{
             suppressGoogleOverlays();
             protectDropdownsFromTranslation();
-            triggerLanguageSwitch();
-        }}, 800);
+        }});
+        observer.observe(targetDoc.body || targetDoc.documentElement, {{ childList: true, subtree: true }});
     }}
 }})();
 </script>
+</body>
+</html>
 """
-st.html(translate_bridge_html, unsafe_allow_javascript=True)
+components.html(translate_component_html, height=0)
 
 # Comprehensive Global Regional Currency Detection
 def detect_currency(lat, lon):
